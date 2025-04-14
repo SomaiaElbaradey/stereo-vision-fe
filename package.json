@@ -1,5 +1,6 @@
 {
     "name": "stereo-vision",
+    "homepage": "https://SomaiaElbaradey.github.io/stereo-vision-fe",
     "version": "0.1.0",
     "private": true,
     "dependencies": {
