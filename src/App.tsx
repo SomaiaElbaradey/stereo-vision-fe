@@ -1,5 +1,4 @@
 import CameraCapture from "./components/CameraCapture";
-import './index.css'
 
 function App() {
   return (

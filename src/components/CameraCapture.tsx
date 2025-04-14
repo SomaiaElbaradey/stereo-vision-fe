@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import axios from "axios";
-import { Button } from "../ui/button";
+import Button from "../ui/button";
 
 const CameraCapture: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -84,26 +84,26 @@ const CameraCapture: React.FC = () => {
             <div className="flex gap-2">
                 <Button
                     onClick={startCamera}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+                    size='lg'
                 >
                     Start Camera
                 </Button>
                 <Button
                     onClick={stopCamera}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg"
+                    size='lg'
                 >
                     Stop Camera
                 </Button>
                 <Button
                     onClick={takeSnapshot}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg"
+                    size='lg'
                 >
                     Take Picture
                 </Button>
                 <Button
                     onClick={uploadImages}
                     disabled={calibrating}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg"
+                    size='xl'
                 >
                     {calibrating ? "Calibrating..." : "Upload & Calibrate"}
                 </Button>
