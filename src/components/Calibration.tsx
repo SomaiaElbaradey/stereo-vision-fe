@@ -1,77 +1,83 @@
-import React, { useRef, useState } from "react";
-import axios from "axios";
-import { Button } from "../ui/button";
-import { CameraIcon } from "lucide-react";
+import type React from "react"
+import { useRef, useState } from "react"
+import axios from "axios"
+import { Button } from "../ui/button"
+import { CameraIcon } from "lucide-react"
 
-const Calibration: React.FC = () => {
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [images, setImages] = useState<Blob[]>([]);
-    const [calibrating, setCalibrating] = useState(false);
-    const [result, setResult] = useState<any>(null);
-    const [stream, setStream] = useState<MediaStream | null>(null); // Store the media stream
+interface CalibrationProps {
+    images: Blob[]
+    setImages: React.Dispatch<React.SetStateAction<Blob[]>>
+    result: any
+    setResult: React.Dispatch<React.SetStateAction<any>>
+}
+
+const Calibration: React.FC<CalibrationProps> = ({ images, setImages, result, setResult }) => {
+    const videoRef = useRef<HTMLVideoElement>(null)
+    const canvasRef = useRef<HTMLCanvasElement>(null)
+    const [calibrating, setCalibrating] = useState(false)
+    const [stream, setStream] = useState<MediaStream | null>(null) // Store the media stream
 
     // Start the webcam stream
     const startCamera = async () => {
         try {
-            const newStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            if (videoRef.current) videoRef.current.srcObject = newStream;
-            setStream(newStream); // Save the stream to stop it later
+            const newStream = await navigator.mediaDevices.getUserMedia({ video: true })
+            if (videoRef.current) videoRef.current.srcObject = newStream
+            setStream(newStream) // Save the stream to stop it later
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
-            alert("Failed to access the webcam.");
+            alert("Failed to access the webcam.")
         }
-    };
+    }
 
     // Stop the webcam stream
     const stopCamera = () => {
         if (stream) {
-            const tracks = stream.getTracks();
-            tracks.forEach((track) => track.stop()); // Stop all tracks
-            setStream(null); // Reset stream state
+            const tracks = stream.getTracks()
+            tracks.forEach((track) => track.stop()) // Stop all tracks
+            setStream(null) // Reset stream state
         }
-    };
+    }
 
     // Take a snapshot
     const takeSnapshot = () => {
-        const canvas = canvasRef.current;
-        const video = videoRef.current;
+        const canvas = canvasRef.current
+        const video = videoRef.current
         if (canvas && video) {
-            const ctx = canvas.getContext("2d");
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const ctx = canvas.getContext("2d")
+            canvas.width = video.videoWidth
+            canvas.height = video.videoHeight
+            ctx?.drawImage(video, 0, 0, canvas.width, canvas.height)
             canvas.toBlob((blob) => {
-                if (blob) setImages((prev) => [...prev, blob]);
-            }, "image/jpeg");
+                if (blob) setImages((prev) => [...prev, blob])
+            }, "image/jpeg")
         }
-    };
+    }
 
     // Upload captured images to backend
     const uploadImages = async () => {
         if (images.length < 5) {
-            alert("Please take at least 5 images of the chessboard for calibration.");
-            return;
+            alert("Please take at least 5 images of the chessboard for calibration.")
+            return
         }
-        setCalibrating(true);
-        const formData = new FormData();
+        setCalibrating(true)
+        const formData = new FormData()
         images.forEach((img, idx) => {
-            formData.append("files", img, `cal${idx}.jpg`);
-        });
+            formData.append("files", img, `cal${idx}.jpg`)
+        })
 
         try {
             // https://stereo-vision-be.onrender.com
             const res = await axios.post("http://localhost:8000/upload/", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
-            });
-            setResult(res.data); // Assume the backend returns the calibrated images in the response
+            })
+            setResult(res.data)
         } catch (err) {
-            console.error(err);
-            alert("Calibration failed.");
+            console.error(err)
+            alert("Calibration failed.")
         } finally {
-            setCalibrating(false);
+            setCalibrating(false)
         }
-    };
+    }
 
     return (
         <div className="flex flex-col items-center gap-4 p-6 max-w-xl mx-auto text-center">
@@ -95,25 +101,10 @@ const Calibration: React.FC = () => {
             <canvas ref={canvasRef} style={{ display: "none" }} />
 
             <div className="flex gap-2">
-                <Button
-                    onClick={startCamera}
-                >
-                    Start Camera
-                </Button>
-                <Button
-                    onClick={stopCamera}
-                >
-                    Stop Camera
-                </Button>
-                <Button
-                    onClick={takeSnapshot}
-                >
-                    Take Picture
-                </Button>
-                <Button
-                    onClick={uploadImages}
-                    disabled={calibrating}
-                >
+                <Button onClick={startCamera}>Start Camera</Button>
+                <Button onClick={stopCamera}>Stop Camera</Button>
+                <Button onClick={takeSnapshot}>Take Picture</Button>
+                <Button onClick={uploadImages} disabled={calibrating}>
                     {calibrating ? "Calibrating..." : "Upload & Calibrate"}
                 </Button>
             </div>
@@ -137,7 +128,7 @@ const Calibration: React.FC = () => {
                 </div>
             )}
         </div>
-    );
-};
+    )
+}
 
-export default Calibration;
+export default Calibration
