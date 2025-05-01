@@ -1,15 +1,84 @@
 import { useState } from "react"
-import { CameraIcon, ImageIcon, CuboidIcon as Cube3dIcon } from "lucide-react"
+import { CameraIcon, ImageIcon, CuboidIcon as Cube3dIcon } from 'lucide-react'
 import { Button } from "../ui/button"
-import { Input } from "../ui/input"
-import { Label } from "@radix-ui/react-label"
-import { Slider } from "../ui/slider"
 import { TabsContent, TabsList, TabsTrigger, Tabs } from "../ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import Calibration from "./Calibration"
+import StereoRectify from "./rectification"
+import axios from "axios"
 
 export default function StereoVisionTabs() {
-    const [featureThreshold, setFeatureThreshold] = useState<number[]>([75])
+    const [calibrationImages, setCalibrationImages] = useState<Blob[]>([])
+    const [calibrationResult, setCalibrationResult] = useState<any>(null)
+
+    const [leftBlob, setLeftBlob] = useState<Blob | null>(null)
+    const [rightBlob, setRightBlob] = useState<Blob | null>(null)
+    const [rectifyResults, setRectifyResults] = useState<{
+        left: string;
+        right: string;
+        matched: string;
+        pts2: any
+        pts1: any
+    } | null>(null)
+
+    const [geometryResult, setGeometryResult] = useState<any>(null)
+    const [reconstructionResult, setReconstructionResult] = useState<any>(null)
+
+    const handleEstimateGeometry = async () => {
+        if (!rectifyResults || !calibrationResult) {
+            alert("Please complete calibration and rectification first.")
+            return
+        }
+
+        try {
+            const pts1 = rectifyResults?.pts1?.flat() || []
+            const pts2 = rectifyResults?.pts2?.flat() || []
+            const K = calibrationResult?.K?.flat() || []
+
+            console.log(calibrationResult);
+
+            if (!pts1.length || !pts2.length || !K.length) {
+                alert("Missing point data or calibration matrix")
+                return
+            }
+
+            const formData = new FormData()
+            pts1.forEach((val: string | Blob) => formData.append("pts1", val.toString()))
+            pts2.forEach((val: string | Blob) => formData.append("pts2", val.toString()))
+            K.forEach((val: string | Blob) => formData.append("k", val.toString()))
+
+            const res = await axios.post("http://localhost:8000/geometry/", formData)
+            setGeometryResult(res.data)
+        } catch (err) {
+            console.error(err)
+            alert("Failed to estimate geometry.")
+        }
+    }
+
+    const handleReconstruct3D = async () => {
+        if (!geometryResult || !leftBlob || !rightBlob) {
+            alert("Geometry estimation and stereo capture required.")
+            return
+        }
+
+        const formData = new FormData()
+        formData.append("left_img_file", leftBlob, "left.jpg")
+        formData.append("right_img_file", rightBlob, "right.jpg")
+
+        geometryResult.inlier_pts1.flat().forEach((val: string | Blob) => formData.append("pts1", val))
+        geometryResult.inlier_pts2.flat().forEach((val: string | Blob) => formData.append("pts2", val))
+        geometryResult.R.flat().forEach((val: string | Blob) => formData.append("r", val))
+        geometryResult.T.flat().forEach((val: string | Blob) => formData.append("t", val))
+        calibrationResult.K.flat().forEach((val: string | Blob) => formData.append("k", val))
+
+        try {
+            const res = await axios.post("http://localhost:8000/reconstruct/", formData)
+            setReconstructionResult(res.data)
+        } catch (err) {
+            console.error(err)
+            alert("3D reconstruction failed.")
+        }
+    }
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 p-4">
@@ -44,30 +113,25 @@ export default function StereoVisionTabs() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <Calibration></Calibration>
+                                <Calibration
+                                    images={calibrationImages}
+                                    setImages={setCalibrationImages}
+                                    result={calibrationResult}
+                                    setResult={setCalibrationResult}
+                                />
                             </CardContent>
                         </Card>
                     </TabsContent>
 
                     <TabsContent value="rectify">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Image Rectification & Feature Matching</CardTitle>
-                                <CardDescription>Rectify images and detect matching features between image pairs.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <Button className="w-full">Detect & Match Features</Button>
-
-                                    <div className="flex items-center justify-center bg-gray-100 rounded-lg h-64">
-                                        <div className="text-center">
-                                            <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-                                            <p className="mt-2 text-sm text-gray-500">Feature matches will appear here</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <StereoRectify
+                            leftBlob={leftBlob}
+                            setLeftBlob={setLeftBlob}
+                            rightBlob={rightBlob}
+                            setRightBlob={setRightBlob}
+                            results={rectifyResults}
+                            setResults={setRectifyResults}
+                        />
                     </TabsContent>
 
                     <TabsContent value="construction">
@@ -80,16 +144,26 @@ export default function StereoVisionTabs() {
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                                    <Button className="w-full">Generate 3D Model</Button>
-
-                                    <div className="flex items-center justify-center bg-gray-100 rounded-lg h-64">
-                                        <div className="text-center">
-                                            <Cube3dIcon className="mx-auto h-12 w-12 text-gray-400" />
-                                            <p className="mt-2 text-sm text-gray-500">3D model preview will appear here</p>
-                                        </div>
-                                    </div>
+                                    <Button onClick={handleEstimateGeometry} className="w-full">Estimate Geometry</Button>
+                                    <Button onClick={handleReconstruct3D} className="w-full">Generate 3D Model</Button>
                                 </div>
+
+                                {geometryResult && (
+                                    <div className="mt-4 bg-gray-100 p-4 rounded">
+                                        <h3 className="font-medium">Estimated Geometry</h3>
+                                        <p className="text-sm text-gray-700">R: {JSON.stringify(geometryResult.R)}</p>
+                                        <p className="text-sm text-gray-700">T: {JSON.stringify(geometryResult.T)}</p>
+                                    </div>
+                                )}
+
+                                {reconstructionResult && (
+                                    <div className="mt-4 bg-gray-100 p-4 rounded">
+                                        <h3 className="font-medium">3D Points (first 5)</h3>
+                                        <pre className="text-xs overflow-x-auto">
+                                            {JSON.stringify(reconstructionResult.points.slice(0, 5), null, 2)}
+                                        </pre>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>
