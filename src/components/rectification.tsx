@@ -12,8 +12,8 @@ interface StereoRectifyProps {
     rightBlob: Blob | null
     setRightBlob: React.Dispatch<React.SetStateAction<Blob | null>>
     results: {
-        left: string
-        right: string
+        // left: string
+        // right: string
         matched: string
         pts2: any
         pts1: any
@@ -21,8 +21,8 @@ interface StereoRectifyProps {
     } | null
     setResults: React.Dispatch<
         React.SetStateAction<{
-            left: string
-            right: string
+            // left: string
+            // right: string
             matched: string
             pts2: any
             pts1: any
@@ -99,11 +99,11 @@ const StereoRectify: React.FC<StereoRectifyProps> = ({
 
         try {
             const res2 = await axios.post(`${BACKEND_API}/match-features/`, formData)
-            const res1 = await axios.post(`${BACKEND_API}/rectify/`, newData)
+            // const res1 = await axios.post(`${BACKEND_API}/rectify/`, newData)
 
             setResults({
-                left: res1.data.left,
-                right: res1.data.right,
+                // left: res1.data.left,
+                // right: res1.data.right,
                 matched: res2.data.matched_image,
                 pts1: res2.data.keypoints1,
                 pts2: res2.data.keypoints2,
@@ -161,7 +161,7 @@ const StereoRectify: React.FC<StereoRectifyProps> = ({
                             <div>
                                 <h3 className="font-medium mb-2">Rectified Images</h3>
                                 <div className="flex gap-4 justify-center">
-                                    <img
+                                    {/* <img
                                         src={`data:image/jpeg;base64,${results.left}`}
                                         alt="Rectified Left"
                                         className="w-64 rounded shadow"
@@ -170,7 +170,7 @@ const StereoRectify: React.FC<StereoRectifyProps> = ({
                                         src={`data:image/jpeg;base64,${results.right}`}
                                         alt="Rectified Right"
                                         className="w-64 rounded shadow"
-                                    />
+                                    /> */}
                                 </div>
                             </div>
 
