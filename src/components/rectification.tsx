@@ -4,6 +4,7 @@ import axios from "axios"
 import { Button } from "../ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import { CameraIcon } from "lucide-react"
+import { BACKEND_API } from "../lib/constats"
 
 interface StereoRectifyProps {
     leftBlob: Blob | null
@@ -91,15 +92,14 @@ const StereoRectify: React.FC<StereoRectifyProps> = ({
         formData.append("left_image", leftBlob, "left.jpg")
         formData.append("right_image", rightBlob, "right.jpg")
 
+        const newData = new FormData()
+
+        newData.append("left", leftBlob, "left.jpg")
+        newData.append("right", rightBlob, "right.jpg")
+
         try {
-            const res2 = await axios.post("https://stereo-vision-be.onrender.com/match-features/", formData)
-
-            const newData = new FormData()
-
-            newData.append("left", leftBlob, "left.jpg")
-            newData.append("right", rightBlob, "right.jpg")
-
-            const res1 = await axios.post("https://stereo-vision-be.onrender.com/rectify/", newData)
+            const res2 = await axios.post(`${BACKEND_API}/match-features/`, formData)
+            const res1 = await axios.post(`${BACKEND_API}/rectify/`, newData)
 
             setResults({
                 left: res1.data.left,

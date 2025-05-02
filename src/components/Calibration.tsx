@@ -3,6 +3,7 @@ import { useRef, useState } from "react"
 import axios from "axios"
 import { Button } from "../ui/button"
 import { CameraIcon } from "lucide-react"
+import { BACKEND_API } from "../lib/constats"
 
 interface CalibrationProps {
     images: Blob[]
@@ -65,7 +66,7 @@ const Calibration: React.FC<CalibrationProps> = ({ images, setImages, result, se
         })
 
         try {
-            const res = await axios.post("https://stereo-vision-be.onrender.com/upload/", formData, {
+            const res = await axios.post(`${BACKEND_API}/upload/`, formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             })
             setResult(res.data)

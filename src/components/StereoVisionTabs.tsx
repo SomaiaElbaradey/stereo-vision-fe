@@ -7,6 +7,7 @@ import Calibration from "./Calibration"
 import StereoRectify from "./rectification"
 import axios from "axios"
 import CompletedExample from "./CompleteExample"
+import { BACKEND_API } from "../lib/constats"
 
 export default function StereoVisionTabs() {
     const [calibrationImages, setCalibrationImages] = useState<Blob[]>([])
@@ -49,7 +50,7 @@ export default function StereoVisionTabs() {
         }
 
         try {
-            const res = await axios.post("https://stereo-vision-be.onrender.com/estimate-geometry/", {
+            const res = await axios.post(`${BACKEND_API}/estimate-geometry/`, {
                 keypoints1: pts1,
                 keypoints2: pts2,
                 matches: good_matches,
@@ -78,7 +79,7 @@ export default function StereoVisionTabs() {
         formData.append("pts2", JSON.stringify(geometryResult.inlier_pts2))
 
         try {
-            const res = await axios.post("https://stereo-vision-be.onrender.com/reconstruct-3d/", formData)
+            const res = await axios.post(`${BACKEND_API}/reconstruct-3d/`, formData)
             setReconstructionImg(res.data.sparse_point_cloud)
         } catch (err) {
             console.error(err)
@@ -97,7 +98,7 @@ export default function StereoVisionTabs() {
         formData.append("right", rightBlob, "right.jpg")
 
         try {
-            const res = await axios.post("https://stereo-vision-be.onrender.com/compute-disparity/", formData)
+            const res = await axios.post(`${BACKEND_API}/compute-disparity/`, formData)
             // expecting { disparity_map: "<base64_png>" }
             setDisparityImg(res.data.disparity_map)
         } catch (err) {
