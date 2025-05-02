@@ -1,11 +1,12 @@
 import { useState } from "react"
-import { CameraIcon, ImageIcon, CuboidIcon as Cube3dIcon } from 'lucide-react'
+import { CameraIcon, ImageIcon, CuboidIcon as Cube3dIcon } from "lucide-react"
 import { Button } from "../ui/button"
 import { TabsContent, TabsList, TabsTrigger, Tabs } from "../ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import Calibration from "./Calibration"
 import StereoRectify from "./rectification"
 import axios from "axios"
+import CompletedExample from "./CompleteExample"
 
 export default function StereoVisionTabs() {
     const [calibrationImages, setCalibrationImages] = useState<Blob[]>([])
@@ -14,15 +15,24 @@ export default function StereoVisionTabs() {
     const [leftBlob, setLeftBlob] = useState<Blob | null>(null)
     const [rightBlob, setRightBlob] = useState<Blob | null>(null)
     const [rectifyResults, setRectifyResults] = useState<{
-        left: string;
-        right: string;
-        matched: string;
-        pts2: any
-        pts1: any
+        left: string
+        right: string
+        matched: string
+        pts1: number[][]
+        pts2: number[][]
+        good_matches: { queryIdx: number; trainIdx: number }[]
     } | null>(null)
 
-    const [geometryResult, setGeometryResult] = useState<any>(null)
-    const [reconstructionResult, setReconstructionResult] = useState<any>(null)
+    const [geometryResult, setGeometryResult] = useState<{
+        E: number[][]
+        R: number[][]
+        t: number[]
+        inlier_pts1: number[][]
+        inlier_pts2: number[][]
+    } | null>(null)
+
+    const [reconstructionImg, setReconstructionImg] = useState<string | null>(null)
+    const [disparityImg, setDisparityImg] = useState<string | null>(null)
 
     const handleEstimateGeometry = async () => {
         if (!rectifyResults || !calibrationResult) {
@@ -30,24 +40,21 @@ export default function StereoVisionTabs() {
             return
         }
 
+        const { pts1, pts2, good_matches } = rectifyResults
+        const { K } = calibrationResult
+
+        if (!pts1.length || !pts2.length || !K) {
+            alert("Missing point data or calibration matrix")
+            return
+        }
+
         try {
-            const pts1 = rectifyResults?.pts1?.flat() || []
-            const pts2 = rectifyResults?.pts2?.flat() || []
-            const K = calibrationResult?.K?.flat() || []
-
-            console.log(calibrationResult);
-
-            if (!pts1.length || !pts2.length || !K.length) {
-                alert("Missing point data or calibration matrix")
-                return
-            }
-
-            const formData = new FormData()
-            pts1.forEach((val: string | Blob) => formData.append("pts1", val.toString()))
-            pts2.forEach((val: string | Blob) => formData.append("pts2", val.toString()))
-            K.forEach((val: string | Blob) => formData.append("k", val.toString()))
-
-            const res = await axios.post("http://localhost:8000/geometry/", formData)
+            const res = await axios.post("https://stereo-vision-be.onrender.com/estimate-geometry/", {
+                keypoints1: pts1,
+                keypoints2: pts2,
+                matches: good_matches,
+                K,
+            })
             setGeometryResult(res.data)
         } catch (err) {
             console.error(err)
@@ -57,26 +64,45 @@ export default function StereoVisionTabs() {
 
     const handleReconstruct3D = async () => {
         if (!geometryResult || !leftBlob || !rightBlob) {
-            alert("Geometry estimation and stereo capture required.")
+            alert("Geometry estimation and stereo images required.")
             return
         }
 
         const formData = new FormData()
-        formData.append("left_img_file", leftBlob, "left.jpg")
-        formData.append("right_img_file", rightBlob, "right.jpg")
-
-        geometryResult.inlier_pts1.flat().forEach((val: string | Blob) => formData.append("pts1", val))
-        geometryResult.inlier_pts2.flat().forEach((val: string | Blob) => formData.append("pts2", val))
-        geometryResult.R.flat().forEach((val: string | Blob) => formData.append("r", val))
-        geometryResult.T.flat().forEach((val: string | Blob) => formData.append("t", val))
-        calibrationResult.K.flat().forEach((val: string | Blob) => formData.append("k", val))
+        formData.append("left", leftBlob, "left.jpg")
+        formData.append("right", rightBlob, "right.jpg")
+        formData.append("K", JSON.stringify(calibrationResult.K))
+        formData.append("R", JSON.stringify(geometryResult.R))
+        formData.append("t", JSON.stringify(geometryResult.t))
+        formData.append("pts1", JSON.stringify(geometryResult.inlier_pts1))
+        formData.append("pts2", JSON.stringify(geometryResult.inlier_pts2))
 
         try {
-            const res = await axios.post("http://localhost:8000/reconstruct/", formData)
-            setReconstructionResult(res.data)
+            const res = await axios.post("https://stereo-vision-be.onrender.com/reconstruct-3d/", formData)
+            setReconstructionImg(res.data.sparse_point_cloud)
         } catch (err) {
             console.error(err)
             alert("3D reconstruction failed.")
+        }
+    }
+
+    const handleComputeDisparity = async () => {
+        if (!leftBlob || !rightBlob) {
+            alert("Please load both left and right images first.")
+            return
+        }
+
+        const formData = new FormData()
+        formData.append("left", leftBlob, "left.jpg")
+        formData.append("right", rightBlob, "right.jpg")
+
+        try {
+            const res = await axios.post("https://stereo-vision-be.onrender.com/compute-disparity/", formData)
+            // expecting { disparity_map: "<base64_png>" }
+            setDisparityImg(res.data.disparity_map)
+        } catch (err) {
+            console.error(err)
+            alert("Disparity computation failed.")
         }
     }
 
@@ -89,7 +115,7 @@ export default function StereoVisionTabs() {
                 </div>
 
                 <Tabs defaultValue="calibration" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 mb-8">
+                    <TabsList className="grid w-full grid-cols-4 mb-8">
                         <TabsTrigger value="calibration" className="flex items-center gap-2">
                             <CameraIcon className="h-4 w-4" />
                             <span>Calibration</span>
@@ -101,6 +127,10 @@ export default function StereoVisionTabs() {
                         <TabsTrigger value="construction" className="flex items-center gap-2">
                             <Cube3dIcon className="h-4 w-4" />
                             <span>3D Construction</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="example" className="flex items-center gap-2">
+                            <Cube3dIcon className="h-4 w-4" />
+                            <span>Example</span>
                         </TabsTrigger>
                     </TabsList>
 
@@ -143,29 +173,61 @@ export default function StereoVisionTabs() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <Button onClick={handleEstimateGeometry} className="w-full">Estimate Geometry</Button>
-                                    <Button onClick={handleReconstruct3D} className="w-full">Generate 3D Model</Button>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <Button onClick={handleEstimateGeometry} className="w-full">
+                                        Estimate Geometry
+                                    </Button>
+                                    <Button onClick={handleReconstruct3D} className="w-full">
+                                        Generate 3D Model
+                                    </Button>
+                                    <Button onClick={handleComputeDisparity} className="w-full">
+                                        Compute Disparity Map
+                                    </Button>
                                 </div>
 
+                                {/* Geometry result */}
                                 {geometryResult && (
                                     <div className="mt-4 bg-gray-100 p-4 rounded">
                                         <h3 className="font-medium">Estimated Geometry</h3>
-                                        <p className="text-sm text-gray-700">R: {JSON.stringify(geometryResult.R)}</p>
-                                        <p className="text-sm text-gray-700">T: {JSON.stringify(geometryResult.T)}</p>
+                                        <p className="text-sm text-gray-700">
+                                            <strong>R:</strong> {JSON.stringify(geometryResult.R)}
+                                        </p>
+                                        <p className="text-sm text-gray-700">
+                                            <strong>T:</strong> {JSON.stringify(geometryResult.t)}
+                                        </p>
                                     </div>
                                 )}
 
-                                {reconstructionResult && (
-                                    <div className="mt-4 bg-gray-100 p-4 rounded">
-                                        <h3 className="font-medium">3D Points (first 5)</h3>
-                                        <pre className="text-xs overflow-x-auto">
-                                            {JSON.stringify(reconstructionResult.points.slice(0, 5), null, 2)}
-                                        </pre>
+                                {/* Reconstruction image */}
+                                {reconstructionImg && (
+                                    <div className="mt-4 bg-gray-100 p-4 rounded text-center">
+                                        <h3 className="font-medium mb-2">Sparse 3D Reconstruction</h3>
+                                        <img
+                                            src={`data:image/png;base64,${reconstructionImg}`}
+                                            alt="Sparse 3D point cloud"
+                                            className="inline-block max-w-full h-auto rounded shadow"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Disparity map */}
+                                {disparityImg && (
+                                    <div className="mt-4 bg-gray-100 p-4 rounded text-center">
+                                        <h3 className="font-medium mb-2">Disparity Map</h3>
+                                        <img
+                                            src={`data:image/png;base64,${disparityImg}`}
+                                            alt="Disparity map"
+                                            className="inline-block max-w-full h-auto rounded shadow"
+                                        />
                                     </div>
                                 )}
                             </CardContent>
                         </Card>
+
+                    </TabsContent>
+
+                    <TabsContent value='example'>
+                        <CompletedExample />
                     </TabsContent>
                 </Tabs>
             </div>
