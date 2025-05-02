@@ -16,6 +16,7 @@ interface StereoRectifyProps {
         matched: string
         pts2: any
         pts1: any
+        good_matches: any
     } | null
     setResults: React.Dispatch<
         React.SetStateAction<{
@@ -24,6 +25,7 @@ interface StereoRectifyProps {
             matched: string
             pts2: any
             pts1: any
+            good_matches: any
         } | null>
     >
 }
@@ -85,12 +87,19 @@ const StereoRectify: React.FC<StereoRectifyProps> = ({
         }
 
         const formData = new FormData()
-        formData.append("left", leftBlob, "left.jpg")
-        formData.append("right", rightBlob, "right.jpg")
+
+        formData.append("left_image", leftBlob, "left.jpg")
+        formData.append("right_image", rightBlob, "right.jpg")
 
         try {
-            const res1 = await axios.post("http://localhost:8000/rectify/", formData)
-            const res2 = await axios.post("http://localhost:8000/match-features/", formData)
+            const res2 = await axios.post("https://stereo-vision-be.onrender.com/match-features/", formData)
+
+            const newData = new FormData()
+
+            newData.append("left", leftBlob, "left.jpg")
+            newData.append("right", rightBlob, "right.jpg")
+
+            const res1 = await axios.post("https://stereo-vision-be.onrender.com/rectify/", newData)
 
             setResults({
                 left: res1.data.left,
@@ -98,7 +107,10 @@ const StereoRectify: React.FC<StereoRectifyProps> = ({
                 matched: res2.data.matched_image,
                 pts1: res2.data.keypoints1,
                 pts2: res2.data.keypoints2,
+                good_matches: res2.data.good_matches
             })
+            console.log(res2.data);
+
         } catch (err) {
             console.error(err)
             alert("Processing failed.")

@@ -67,7 +67,8 @@ const Calibration: React.FC<CalibrationProps> = ({ images, setImages, result, se
 
         try {
             // https://stereo-vision-be.onrender.com
-            const res = await axios.post("http://localhost:8000/upload/", formData, {
+            // http://localhost:8000
+            const res = await axios.post("https://stereo-vision-be.onrender.com/upload/", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             })
             setResult(res.data)
