@@ -15,15 +15,14 @@ const Calibration: React.FC<CalibrationProps> = ({ images, setImages, result, se
     const videoRef = useRef<HTMLVideoElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [calibrating, setCalibrating] = useState(false)
-    const [stream, setStream] = useState<MediaStream | null>(null) // Store the media stream
+    const [stream, setStream] = useState<MediaStream | null>(null)
 
     // Start the webcam stream
     const startCamera = async () => {
         try {
             const newStream = await navigator.mediaDevices.getUserMedia({ video: true })
             if (videoRef.current) videoRef.current.srcObject = newStream
-            setStream(newStream) // Save the stream to stop it later
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            setStream(newStream)
         } catch (err) {
             alert("Failed to access the webcam.")
         }
@@ -33,8 +32,8 @@ const Calibration: React.FC<CalibrationProps> = ({ images, setImages, result, se
     const stopCamera = () => {
         if (stream) {
             const tracks = stream.getTracks()
-            tracks.forEach((track) => track.stop()) // Stop all tracks
-            setStream(null) // Reset stream state
+            tracks.forEach((track) => track.stop())
+            setStream(null)
         }
     }
 
@@ -66,8 +65,6 @@ const Calibration: React.FC<CalibrationProps> = ({ images, setImages, result, se
         })
 
         try {
-            // https://stereo-vision-be.onrender.com
-            // http://localhost:8000
             const res = await axios.post("https://stereo-vision-be.onrender.com/upload/", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             })
@@ -83,6 +80,10 @@ const Calibration: React.FC<CalibrationProps> = ({ images, setImages, result, se
     return (
         <div className="flex flex-col items-center gap-4 p-6 max-w-xl mx-auto text-center">
             <h2 className="text-2xl font-semibold">Camera Calibration</h2>
+            {/* Chessboard requirement notice */}
+            <p className="text-sm text-gray-500">
+                Please use a chessboard with 9×7 interior corners and a square size of 15 mm for accurate calibration.
+            </p>
 
             {stream ? (
                 <video
