@@ -16,8 +16,8 @@ export default function StereoVisionTabs() {
     const [leftBlob, setLeftBlob] = useState<Blob | null>(null)
     const [rightBlob, setRightBlob] = useState<Blob | null>(null)
     const [rectifyResults, setRectifyResults] = useState<{
-        // left: string
-        // right: string
+        left: string
+        right: string
         matched: string
         pts1: number[][]
         pts2: number[][]
@@ -162,6 +162,7 @@ export default function StereoVisionTabs() {
                             setRightBlob={setRightBlob}
                             results={rectifyResults}
                             setResults={setRectifyResults}
+                            calibrationResult={calibrationResult}
                         />
                     </TabsContent>
 

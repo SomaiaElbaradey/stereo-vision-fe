@@ -12,8 +12,8 @@ interface StereoRectifyProps {
     rightBlob: Blob | null
     setRightBlob: React.Dispatch<React.SetStateAction<Blob | null>>
     results: {
-        // left: string
-        // right: string
+        left: string
+        right: string
         matched: string
         pts2: any
         pts1: any
@@ -21,14 +21,15 @@ interface StereoRectifyProps {
     } | null
     setResults: React.Dispatch<
         React.SetStateAction<{
-            // left: string
-            // right: string
+            left: string
+            right: string
             matched: string
             pts2: any
             pts1: any
             good_matches: any
         } | null>
     >
+    calibrationResult: any
 }
 
 const StereoRectify: React.FC<StereoRectifyProps> = ({
@@ -38,6 +39,7 @@ const StereoRectify: React.FC<StereoRectifyProps> = ({
     setRightBlob,
     results,
     setResults,
+    calibrationResult
 }) => {
     const videoRef = useRef<HTMLVideoElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -92,18 +94,33 @@ const StereoRectify: React.FC<StereoRectifyProps> = ({
         formData.append("left_image", leftBlob, "left.jpg")
         formData.append("right_image", rightBlob, "right.jpg")
 
-        const newData = new FormData()
+        // FormData for the rectify endpoint
+        const rectifyData = new FormData()
+        rectifyData.append("left", leftBlob, "left.jpg")
+        rectifyData.append("right", rightBlob, "right.jpg")
 
-        newData.append("left", leftBlob, "left.jpg")
-        newData.append("right", rightBlob, "right.jpg")
+        // flatten K (3x3) → 9 floats
+        calibrationResult.K.flat().forEach((v: number) => {
+            rectifyData.append("K", v.toString())
+        })
+
+        // distortion coeffs
+        calibrationResult.dist.forEach((v: number) => {
+            rectifyData.append("dist", v.toString())
+        })
 
         try {
+            const res1 = await axios.post(
+                `${BACKEND_API}/rectify/`,
+                rectifyData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            )
+
             const res2 = await axios.post(`${BACKEND_API}/match-features/`, formData)
-            // const res1 = await axios.post(`${BACKEND_API}/rectify/`, newData)
 
             setResults({
-                // left: res1.data.left,
-                // right: res1.data.right,
+                left: res1.data.left,
+                right: res1.data.right,
                 matched: res2.data.matched_image,
                 pts1: res2.data.keypoints1,
                 pts2: res2.data.keypoints2,
