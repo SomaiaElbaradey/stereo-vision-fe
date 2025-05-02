@@ -1,15 +1,19 @@
 {
   "files": {
-    "main.css": "/stereo-vision-fe/static/css/main.26fb1dbf.css",
-    "main.js": "/stereo-vision-fe/static/js/main.831902f6.js",
+    "main.css": "/stereo-vision-fe/static/css/main.debddee8.css",
+    "main.js": "/stereo-vision-fe/static/js/main.a46d126c.js",
     "static/js/453.895d85d2.chunk.js": "/stereo-vision-fe/static/js/453.895d85d2.chunk.js",
+    "static/media/match.png": "/stereo-vision-fe/static/media/match.d5e11089cbca86bfa9f4.png",
+    "static/media/calibration.png": "/stereo-vision-fe/static/media/calibration.f934d2312676d885fde7.png",
+    "static/media/disparity.png": "/stereo-vision-fe/static/media/disparity.88cf6272548273fabef3.png",
+    "static/media/3dmodel.png": "/stereo-vision-fe/static/media/3dmodel.fa13b508ebee99cfb393.png",
     "index.html": "/stereo-vision-fe/index.html",
-    "main.26fb1dbf.css.map": "/stereo-vision-fe/static/css/main.26fb1dbf.css.map",
-    "main.831902f6.js.map": "/stereo-vision-fe/static/js/main.831902f6.js.map",
+    "main.debddee8.css.map": "/stereo-vision-fe/static/css/main.debddee8.css.map",
+    "main.a46d126c.js.map": "/stereo-vision-fe/static/js/main.a46d126c.js.map",
     "453.895d85d2.chunk.js.map": "/stereo-vision-fe/static/js/453.895d85d2.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.26fb1dbf.css",
-    "static/js/main.831902f6.js"
+    "static/css/main.debddee8.css",
+    "static/js/main.a46d126c.js"
   ]
 }
