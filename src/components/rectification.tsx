@@ -94,26 +94,18 @@ const StereoRectify: React.FC<StereoRectifyProps> = ({
         formData.append("left_image", leftBlob, "left.jpg")
         formData.append("right_image", rightBlob, "right.jpg")
 
-        // FormData for the rectify endpoint
+        // Build form for rectify endpoint
         const rectifyData = new FormData()
         rectifyData.append("left", leftBlob, "left.jpg")
         rectifyData.append("right", rightBlob, "right.jpg")
 
-        // flatten K (3x3) → 9 floats
-        calibrationResult.K.flat().forEach((v: number) => {
-            rectifyData.append("K", v.toString())
-        })
-
-        // distortion coeffs
-        calibrationResult.dist.forEach((v: number) => {
-            rectifyData.append("dist", v.toString())
-        })
+        rectifyData.append("K", JSON.stringify(calibrationResult.K))
+        rectifyData.append("dist", JSON.stringify(calibrationResult.dist))
 
         try {
             const res1 = await axios.post(
                 `${BACKEND_API}/rectify/`,
                 rectifyData,
-                { headers: { "Content-Type": "multipart/form-data" } }
             )
 
             const res2 = await axios.post(`${BACKEND_API}/match-features/`, formData)
@@ -178,7 +170,7 @@ const StereoRectify: React.FC<StereoRectifyProps> = ({
                             <div>
                                 <h3 className="font-medium mb-2">Rectified Images</h3>
                                 <div className="flex gap-4 justify-center">
-                                    {/* <img
+                                    <img
                                         src={`data:image/jpeg;base64,${results.left}`}
                                         alt="Rectified Left"
                                         className="w-64 rounded shadow"
@@ -187,7 +179,7 @@ const StereoRectify: React.FC<StereoRectifyProps> = ({
                                         src={`data:image/jpeg;base64,${results.right}`}
                                         alt="Rectified Right"
                                         className="w-64 rounded shadow"
-                                    /> */}
+                                    />
                                 </div>
                             </div>
 
